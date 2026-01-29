@@ -1,0 +1,7 @@
+{
+  "name": "fairprice-mvp",
+  "private": true,
+  "dependencies": {
+    "stripe": "^16.0.0"
+  }
+}

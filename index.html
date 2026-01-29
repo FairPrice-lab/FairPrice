@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>FairPrice — Quote Check</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <style>
+    :root {
+      --bg:#0b1220; --card:#121a2e; --text:#e7eefc;
+      --muted:#9aa8c7; --line:rgba(255,255,255,.08);
+      --accent:#7dd3fc;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;
+      background:var(--bg);color:var(--text)
+    }
+    .container{max-width:900px;margin:0 auto;padding:48px 20px}
+    header{display:flex;justify-content:space-between;align-items:center;margin-bottom:32px}
+    .brand{font-size:22px;font-weight:900}
+    .pill{border:1px solid var(--line);padding:6px 12px;border-radius:999px;font-size:12px;color:var(--muted)}
+    h1{font-size:42px;line-height:1.1;margin:0 0 12px}
+    .sub{color:var(--muted);max-width:640px;line-height:1.6}
+    .card{margin-top:36px;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:22px}
+    label{display:block;font-size:13px;font-weight:700;margin:14px 0 6px}
+    input,select,textarea{
+      width:100%;padding:10px 12px;border-radius:12px;
+      border:1px solid var(--line);background:#0c1324;color:var(--text)
+    }
+    textarea{resize:vertical}
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    @media(max-width:600px){.row{grid-template-columns:1fr}}
+    button{
+      margin-top:18px;width:100%;padding:12px;border-radius:14px;
+      border:none;background:var(--accent);color:#04101d;font-weight:900;cursor:pointer
+    }
+    .status{margin-top:14px;font-size:14px;color:var(--muted)}
+    .result{
+      margin-top:18px;padding:14px;border-radius:14px;
+      border:1px solid var(--line);background:rgba(255,255,255,.03);display:none
+    }
+    .badge{
+      display:inline-block;padding:6px 10px;border-radius:999px;
+      border:1px solid var(--line);font-size:12px;margin-bottom:10px
+    }
+    footer{
+      margin-top:36px;font-size:12px;color:var(--muted);line-height:1.5
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <header>
+      <div class="brand">FairPrice</div>
+      <div class="pill">Informational tool only</div>
+    </header>
+
+    <h1>Check if a quote is fair<br>before you pay.</h1>
+    <p class="sub">
+      Upload a quote (PDF/image) or paste text. FairPrice gives a quick
+      fairness signal based on typical pricing.
+    </p>
+
+    <div class="card">
+      <label>Upload quote (PDF / image)</label>
+      <input id="file" type="file" accept=".pdf,image/*" />
+
+      <label>Or paste quote text (optional)</label>
+      <textarea id="quoteText" rows="4" placeholder="Paste contractor quote here…"></textarea>
+
+      <div class="row">
+        <div>
+          <label>Category</label>
+          <select id="category">
+            <option>Home Repair</option>
+            <option>Plumbing</option>
+            <option>Electrical</option>
+            <option>Auto Repair</option>
+            <option>Other</option>
+          </select>
+        </div>
+        <div>
+          <label>ZIP code</label>
+          <input id="zip" placeholder="e.g. 92618" />
+        </div>
+      </div>
+
+      <label>Total quoted price (optional)</label>
+      <input id="price" placeholder="e.g. 514.19" />
+
+      <button id="checkBtn">Check quote</button>
+
+      <div class="status" id="status"></div>
+
+      <div class="result" id="resultBox">
+        <div class="badge" id="verdictBadge"></div>
+        <div id="verdictText"></div>
+      </div>
+    </div>
+
+    <footer>
+      FairPrice provides informational price comparisons only and does not provide
+      financial, legal, medical, or professional advice. Results are estimates and
+      not guarantees. Consult a qualified professional.
+    </footer>
+  </div>
+
+<script>
+  const statusEl = document.getElementById("status");
+  const resultBox = document.getElementById("resultBox");
+  const verdictBadge = document.getElementById("verdictBadge");
+  const verdictText = document.getElementById("verdictText");
+
+  async function toBase64(file){
+    return new Promise((res, rej) => {
+      const r = new FileReader();
+      r.onload = () => res(r.result.split(",")[1]);
+      r.onerror = rej;
+      r.readAsDataURL(file);
+    });
+  }
+
+  document.getElementById("checkBtn").onclick = async () => {
+    statusEl.textContent = "Analyzing quote…";
+    resultBox.style.display = "none";
+
+    try {
+      const f = document.getElementById("file").files[0];
+
+      const payload = {
+        mode: "preview",
+        price: document.getElementById("price").value,
+        category: document.getElementById("category").value,
+        zip: document.getElementById("zip").value,
+        quoteText: document.getElementById("quoteText").value,
+        fileName: f ? f.name : null,
+        fileType: f ? f.type : null,
+        fileBase64: f ? await toBase64(f) : null
+      };
+
+      const res = await fetch("/api/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+
+      if (!res.ok) {
+        const t = await res.text();
+        throw new Error(`API ${res.status}: ${t}`);
+      }
+
+      const data = await res.json();
+
+      verdictBadge.textContent = data.verdict || "RESULT";
+      verdictText.textContent =
+        data.note || "This is a preliminary estimate based on typical pricing.";
+
+      resultBox.style.display = "block";
+      statusEl.textContent = "";
+
+    } catch (e) {
+      statusEl.textContent = "Error checking quote: " + (e.message || "unknown");
+    }
+  };
+</script>
+</body>
+</html>
