@@ -13,7 +13,6 @@ function classify(price, median){
 }
 
 function marginEstimate(ratio){
-  // Simple, non-precise bands (avoid over-claiming)
   if (ratio < 0.95) return "Low–normal (estimated 10–20%)";
   if (ratio < 1.10) return "Normal (estimated 15–30%)";
   if (ratio < 1.25) return "High (estimated 25–45%)";
@@ -21,34 +20,27 @@ function marginEstimate(ratio){
 }
 
 function tipsFor(label){
-  if (label === "over") {
-    return "Ask for itemized breakdown (labor hours/materials), get 2 more bids, and request lower-cost alternatives.";
-  }
-  if (label === "under") {
-    return "Confirm scope, exclusions, warranty, and change-order terms to avoid surprise add-ons.";
-  }
+  if (label === "over") return "Ask for itemized breakdown, get 2 more bids, and request lower-cost alternatives.";
+  if (label === "under") return "Confirm scope, exclusions, warranty, and change-order terms to avoid surprise add-ons.";
   return "Confirm scope + warranty, and ask what’s included/excluded before approving.";
 }
 
-// Broad category baselines (national-ish before CPI adjustment)
-// These are deliberately rough. CPI provides regional adjustment.
-function baseMedian(category, scale){
+// Category medians (single default, no scale)
+function baseMedian(category){
   const base = {
-    "Home services (repairs/visit)":     { small: 450,  medium: 1800, large: 8500 },
-    "Home projects (install/remodel)":   { small: 900,  medium: 4500, large: 22000 },
-    "Auto (repair/body)":                { small: 300,  medium: 1400, large: 6000 },
-    "Medical (out-of-pocket)":           { small: 250,  medium: 1200, large: 5000 },
-    "Moving / logistics":                { small: 350,  medium: 1600, large: 7500 },
-    "Professional services":             { small: 500,  medium: 2500, large: 12000 },
-    "Bills / recurring charges":         { small: 120,  medium: 350,  large: 1200 },
-    "Other":                             { small: 500,  medium: 2000, large: 9000 }
+    "Home services (repairs/visit)":     1800,
+    "Home projects (install/remodel)":   4500,
+    "Auto (repair/body)":                1400,
+    "Medical (out-of-pocket)":           1200,
+    "Moving / logistics":                1600,
+    "Professional services":             2500,
+    "Bills / recurring charges":          350,
+    "Other":                             2000
   };
-  const cat = base[category] ? category : "Other";
-  const sc = (scale === "small" || scale === "large") ? scale : "medium";
-  return base[cat][sc] || base[cat].medium;
+  return base[category] ?? base.Other;
 }
 
-// Simple region guess from ZIP first digit (fast, no extra dataset required)
+// ZIP→region (simple)
 function regionFromZip(zip){
   if (!zip || zip.length < 1) return "National";
   const d = zip[0];
@@ -59,7 +51,7 @@ function regionFromZip(zip){
   return "National";
 }
 
-// BLS CPI series IDs
+// BLS CPI series
 const CPI_SERIES = {
   National:  "CUUR0000SA0",
   Northeast: "CUUR0100SA0",
@@ -68,9 +60,9 @@ const CPI_SERIES = {
   West:      "CUUR0400SA0"
 };
 
-// Tiny in-memory cache to reduce BLS calls (best-effort)
-const cpiCache = new Map(); // key -> { value, ts }
-const CACHE_MS = 60 * 60 * 1000; // 1 hour
+// Cache CPI to reduce calls
+const cpiCache = new Map();
+const CACHE_MS = 60 * 60 * 1000;
 
 async function fetchLatestCPI(seriesId){
   const key = `cpi:${seriesId}`;
@@ -90,7 +82,7 @@ async function fetchLatestCPI(seriesId){
 
   const data = await res.json();
   const series = data?.Results?.series?.[0];
-  const point = series?.data?.[0]; // most recent
+  const point = series?.data?.[0];
   const value = point?.value ? Number(point.value) : null;
 
   cpiCache.set(key, { value, ts: now });
@@ -108,23 +100,11 @@ async function cpiMultipliers(zip){
   ]);
 
   if (!nat || !reg) {
-    return {
-      region,
-      localMult: 1.0,
-      stateMult: 1.0,  // approximated
-      nationalMult: 1.0,
-      note: "BLS CPI unavailable at the moment; used neutral multipliers."
-    };
+    return { region, localMult: 1.0, stateMult: 1.0, nationalMult: 1.0, note: "BLS CPI unavailable; neutral multipliers used." };
   }
 
   const ratio = reg / nat;
-  return {
-    region,
-    localMult: ratio,
-    stateMult: ratio,     // “state/region baseline” approximation
-    nationalMult: 1.0,
-    note: "Benchmarks adjusted using BLS CPI (region vs national)."
-  };
+  return { region, localMult: ratio, stateMult: ratio, nationalMult: 1.0, note: "Adjusted using BLS CPI (region vs national)." };
 }
 
 async function verifyAccess(sessionId) {
@@ -132,18 +112,17 @@ async function verifyAccess(sessionId) {
 
   const s = await stripe.checkout.sessions.retrieve(sessionId);
 
-  // One-time
   if (s.mode === "payment" && s.payment_status === "paid") {
     return { ok:true, access:"once" };
   }
 
-  // Subscription (verify active/trialing)
   if (s.mode === "subscription" && s.status === "complete" && s.subscription) {
     const sub = await stripe.subscriptions.retrieve(String(s.subscription));
     if (sub && (sub.status === "active" || sub.status === "trialing")) {
       return { ok:true, access:"sub" };
     }
   }
+
   return { ok:false };
 }
 
@@ -151,49 +130,39 @@ module.exports = async function handler(req, res){
   if (req.method !== "POST") return res.status(405).json({ error:"POST only" });
 
   try{
-    const body = req.body || {};
-    const { mode, session_id, category, scale="medium", zip, price, quoteText } = body;
+    const { mode, session_id, category, zip, price } = req.body || {};
 
     const p = Number(price);
     const havePrice = !Number.isNaN(p) && p > 0;
 
-    // Preview requires price for meaningful signal (keeps it simple)
     if (!havePrice && mode !== "full") {
       return res.status(200).json({
         label: "needs price",
         score: 0.5,
-        message: "Add the total price to get an under/fair/over signal (preview keeps benchmark numbers hidden)."
+        message: "Add the total quoted price to get an under/fair/over signal."
       });
     }
 
     const cpi = await cpiMultipliers(zip);
-    const base = baseMedian(category, scale);
-
+    const base = baseMedian(category);
     const localMedian = base * cpi.localMult;
-    const stateMedian = base * cpi.stateMult;
-    const nationalMedian = base * cpi.nationalMult;
 
     const cls = classify(p, localMedian);
 
-    // FREE preview: no benchmark dollars
+    // Preview: no $ benchmarks
     if (mode !== "full") {
       const msg =
-        cls.label === "over"  ? "Likely OVER typical pricing for your area. Full report shows benchmark range + negotiation levers."
-      : cls.label === "under" ? "Likely UNDER typical pricing. Full report shows what to double-check to avoid surprises."
-      : "Likely FAIR. Full report shows local/state/national comparison and estimated margin band.";
+        cls.label === "over"  ? "Likely OVER typical pricing for your area. Unlock the full report for benchmarks and negotiation levers."
+      : cls.label === "under" ? "Likely UNDER typical pricing. Unlock the full report to see what to double-check."
+      : "Likely FAIR. Unlock the full report for the benchmark range and next steps.";
 
-      return res.status(200).json({
-        label: cls.label,
-        score: cls.score,
-        message: msg
-      });
+      return res.status(200).json({ label: cls.label, score: cls.score, message: msg });
     }
 
-    // FULL requires payment verification
+    // Full requires paid session
     const access = await verifyAccess(session_id);
     if (!access.ok) return res.status(403).json({ error:"Payment required." });
 
-    // Simple fair range around local baseline
     const low = localMedian * 0.85;
     const high = localMedian * 1.20;
 
@@ -201,8 +170,7 @@ module.exports = async function handler(req, res){
     const direction = cpi.localMult >= 1 ? "higher" : "lower";
 
     const marketComparison =
-      `Local (${cpi.region}) baseline is ~${diffPct}% ${direction} than national. ` +
-      `State baseline is approximated from your region; national is the reference baseline.`;
+      `Local (${cpi.region}) baseline is ~${diffPct}% ${direction} than national (CPI-adjusted). State baseline is approximated from region.`;
 
     return res.status(200).json({
       label: cls.label,
