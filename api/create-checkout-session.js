@@ -15,6 +15,7 @@ module.exports = async function handler(req, res) {
 
     const session = await stripe.checkout.sessions.create({
       mode: isSub ? "subscription" : "payment",
+      payment_method_types: ["card"], // ✅ prevents “account balance” weirdness
       line_items: [{ price: priceId, quantity: 1 }],
       success_url: `${origin}/?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}/`
