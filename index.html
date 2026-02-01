@@ -2,9 +2,9 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>FairPrice — Quote Check</title>
+  <title>FairPrice — Check if your quote is fair</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="description" content="Upload a quote and instantly see if it’s likely under/fair/over market. Pay to unlock a full local/state/national comparison." />
+  <meta name="description" content="Upload a quote and instantly check price fairness. Get a free under/fair/over signal, then unlock full market comparisons if needed." />
 
   <style>
     :root{
@@ -28,7 +28,7 @@
         var(--bg);
       color:var(--text);
     }
-    .container{max-width:860px;margin:0 auto;padding:34px 18px 60px}
+    .container{max-width:820px;margin:0 auto;padding:34px 18px 60px}
     .top{
       display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;
       padding:10px 12px;border:1px solid var(--line);border-radius:999px;
@@ -38,13 +38,12 @@
     .logo{width:30px;height:30px;border-radius:12px;background:linear-gradient(135deg,var(--trust),var(--save))}
     .pill{font-size:12px;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:6px 10px;background:rgba(255,255,255,.02)}
     h1{margin:18px 0 8px;font-size:40px;line-height:1.08}
-    .sub{margin:0;color:var(--muted);line-height:1.6;max-width:720px}
+    .sub{margin:0;color:var(--muted);line-height:1.6;max-width:700px}
     .card{
       margin-top:18px;border:1px solid var(--line);border-radius:var(--r);
       background:var(--panel);box-shadow:var(--shadow);overflow:hidden;
     }
     .cardHead{padding:14px 16px;border-bottom:1px solid var(--line);background:rgba(255,255,255,.02)}
-    .cardHead b{font-size:14px}
     .cardBody{padding:16px}
     label{display:block;font-size:13px;font-weight:850;margin:12px 0 7px}
     input,select,textarea,button{
@@ -58,7 +57,7 @@
       margin-top:12px;border:none;border-radius:14px;padding:12px 14px;font-weight:950;cursor:pointer;
       color:#06121f;background:linear-gradient(135deg,var(--trust),var(--save));
     }
-    .status{margin-top:10px;color:var(--muted);font-size:13px;line-height:1.5}
+    .status{margin-top:10px;color:var(--muted);font-size:13px}
     .result{
       display:none;margin-top:14px;border:1px solid var(--line);border-radius:var(--r);
       background:rgba(255,255,255,.02);padding:14px;
@@ -73,12 +72,11 @@
     .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
     @media(max-width:720px){.grid2{grid-template-columns:1fr}}
     .mini{border:1px solid var(--line);border-radius:14px;padding:10px;background:rgba(255,255,255,.02)}
-    .mini b{display:block;margin-bottom:4px}
     .paybox{
       border:1px solid var(--line);border-radius:14px;padding:12px;background:rgba(255,255,255,.02);
       display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;
     }
-    .payBtns{display:flex;gap:10px;flex-wrap:wrap}
+    .payBtns{display:flex;gap:10px}
     .btn2{
       border:none;border-radius:14px;padding:10px 12px;font-weight:950;cursor:pointer;
       color:#06121f;background:linear-gradient(135deg,var(--trust),var(--save));
@@ -96,18 +94,18 @@
   <div class="container">
     <div class="top">
       <div class="brand"><div class="logo"></div>FairPrice</div>
-      <div class="pill">Free fairness preview</div>
+      <div class="pill">Price fairness check</div>
     </div>
 
-    <h1>Check a quote in 30 seconds.</h1>
+    <h1>Check if your quote is fair.</h1>
     <p class="sub">
-      Upload a quote (PDF/image) or paste text. Get a free fairness signal (under / fair / over).
-      Unlock the full report only if you want the numbers.
+      Upload a quote or paste the details. Get a free price-fairness signal.
+      Unlock deeper market comparisons only if you want them.
     </p>
 
     <div class="card">
       <div class="cardHead">
-        <b>Upload → Preview → Unlock (optional)</b>
+        <b>Upload → Price Check → Unlock (optional)</b>
       </div>
 
       <div class="cardBody">
@@ -119,7 +117,7 @@
 
         <div class="row">
           <div>
-            <label>Quote type</label>
+            <label>Quote category</label>
             <select id="category">
               <option>Home services (repairs/visit)</option>
               <option>Home projects (install/remodel)</option>
@@ -133,33 +131,21 @@
           </div>
 
           <div>
-            <label>Scale</label>
-            <select id="scale">
-              <option value="small">Small</option>
-              <option value="medium" selected>Medium</option>
-              <option value="large">Large</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="row">
-          <div>
             <label>ZIP</label>
             <input id="zip" inputmode="numeric" placeholder="e.g., 92618" />
           </div>
-          <div>
-            <label>Total price</label>
-            <input id="price" inputmode="decimal" placeholder="e.g., 514.19" />
-          </div>
         </div>
 
-        <button class="btn" id="previewBtn">Check fairness (free)</button>
+        <label>Total quoted price</label>
+        <input id="price" inputmode="decimal" placeholder="e.g., 514.19" />
+
+        <button class="btn" id="previewBtn">Check price fairness</button>
 
         <div id="status" class="status"></div>
 
         <div id="result" class="result">
           <div class="resultTop">
-            <b id="resultTitle">Free fairness preview</b>
+            <b id="resultTitle">Price fairness result</b>
             <span class="tag" id="resultTag">—</span>
           </div>
 
@@ -171,24 +157,12 @@
           <div id="fullExtras" style="display:none">
             <div class="divider"></div>
             <div class="grid2">
-              <div class="mini">
-                <b>Local / State / National</b>
-                <div id="marketComp">—</div>
-              </div>
-              <div class="mini">
-                <b>Estimated margin band</b>
-                <div id="marginEst">—</div>
-              </div>
+              <div class="mini"><b>Market comparison</b><div id="marketComp">—</div></div>
+              <div class="mini"><b>Estimated margin</b><div id="marginEst">—</div></div>
             </div>
             <div class="grid2" style="margin-top:10px">
-              <div class="mini">
-                <b>Estimated fair range</b>
-                <div id="rangeOut">—</div>
-              </div>
-              <div class="mini">
-                <b>What to do next</b>
-                <div id="tipsOut">—</div>
-              </div>
+              <div class="mini"><b>Fair price range</b><div id="rangeOut">—</div></div>
+              <div class="mini"><b>Next steps</b><div id="tipsOut">—</div></div>
             </div>
             <div class="fine" id="dataNote"></div>
           </div>
@@ -198,19 +172,18 @@
           <div class="paybox">
             <div>
               <b>Unlock full report</b>
-              <div class="fine" style="margin-top:4px">One-time <b>$6.99</b> • Unlimited <b>$17.99/mo</b></div>
+              <div class="fine">One-time <b>$6.99</b> • Unlimited <b>$17.99/mo</b></div>
             </div>
             <div class="payBtns">
-              <button class="btn2" id="payOnceBtn">Pay $6.99</button>
-              <button class="btn2 secondary" id="subscribeBtn">Subscribe</button>
+              <button class="btn2" id="payOnceBtn">$6.99</button>
+              <button class="btn2 secondary" id="subscribeBtn">$17.99/mo</button>
             </div>
           </div>
         </div>
 
-        <!-- Small underwriting disclaimer only -->
         <div class="fine">
-          Disclaimer: FairPrice provides informational estimates only and is not legal, financial, medical/health, tax, or insurance advice.
-          Results may be inaccurate and are not guarantees. Use at your own risk.
+          Disclaimer: Informational estimates only. Not legal, financial, medical, or professional advice.
+          No guarantees. Use at your own risk.
         </div>
       </div>
     </div>
@@ -218,119 +191,67 @@
 
 <script>
   const $ = (id) => document.getElementById(id);
-  function setStatus(msg){ $("status").textContent = msg || ""; }
-  function clamp01(x){ return Math.max(0, Math.min(1, x)); }
-  function setScale(score01){ $("barFill").style.width = (clamp01(score01) * 100) + "%"; }
+  const clamp01 = x => Math.max(0, Math.min(1, x));
+  const setStatus = m => $("status").textContent = m || "";
+  const setScale = s => $("barFill").style.width = (clamp01(s)*100) + "%";
 
   async function toBase64(file){
-    return new Promise((res, rej) => {
-      const r = new FileReader();
-      r.onload = () => res(r.result.split(",")[1]);
-      r.onerror = rej;
-      r.readAsDataURL(file);
+    return new Promise((res, rej)=>{
+      const r=new FileReader(); r.onload=()=>res(r.result.split(",")[1]); r.onerror=rej; r.readAsDataURL(file);
     });
   }
+  const getSessionId = ()=> new URLSearchParams(location.search).get("session_id");
 
-  function getSessionIdFromUrl(){
-    const p = new URLSearchParams(window.location.search);
-    return p.get("session_id");
-  }
-
-  async function buildPayload(){
-    const f = $("file").files[0];
-    if (f && f.size > 6 * 1024 * 1024) throw new Error("File too large. Please upload ~5MB or less.");
+  async function payload(){
+    const f=$("file").files[0];
     return {
-      category: $("category").value,
-      scale: $("scale").value,
-      zip: $("zip").value.trim(),
-      price: $("price").value.trim(),
-      quoteText: $("quoteText").value.trim(),
-      fileName: f ? f.name : null,
-      fileType: f ? f.type : null,
-      fileBase64: f ? await toBase64(f) : null
+      category:$("category").value,
+      zip:$("zip").value.trim(),
+      price:$("price").value.trim(),
+      quoteText:$("quoteText").value.trim(),
+      fileName:f?f.name:null,
+      fileType:f?f.type:null,
+      fileBase64:f?await toBase64(f):null
     };
   }
-
-  async function postJSON(url, body){
-    const res = await fetch(url, {
-      method:"POST",
-      headers:{ "Content-Type":"application/json" },
-      body: JSON.stringify(body)
-    });
-    if (!res.ok) {
-      const t = await res.text();
-      throw new Error(`API ${res.status}: ${t}`);
-    }
-    return res.json();
+  async function post(url, body){
+    const r=await fetch(url,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
+    if(!r.ok) throw new Error(await r.text());
+    return r.json();
+  }
+  function showPreview(d){
+    $("result").style.display="block";
+    $("fullExtras").style.display="none";
+    $("resultTag").textContent=(d.label||"").toUpperCase();
+    setScale(d.score||.5);
+    $("resultText").textContent=d.message||"";
+  }
+  function showFull(d){
+    $("result").style.display="block";
+    $("fullExtras").style.display="block";
+    $("resultTag").textContent=(d.label||"").toUpperCase();
+    setScale(d.score||.5);
+    $("resultText").textContent="Full report unlocked.";
+    $("marketComp").textContent=d.full_report.market_comparison;
+    $("marginEst").textContent=d.full_report.estimated_margin;
+    $("rangeOut").textContent=d.full_report.price_range;
+    $("tipsOut").textContent=d.full_report.tips;
+    $("dataNote").textContent=d.full_report.data_note;
   }
 
-  function showPreview(data){
-    $("result").style.display = "block";
-    $("fullExtras").style.display = "none";
-    $("resultTitle").textContent = "Free fairness preview";
-    $("resultTag").textContent = (data?.label || "RESULT").toUpperCase();
-    setScale(data?.score ?? 0.5);
-    $("resultText").textContent = data?.message || "Preview generated.";
-  }
-
-  function showFull(data){
-    $("result").style.display = "block";
-    $("fullExtras").style.display = "block";
-    $("resultTitle").textContent = "Full report";
-    $("resultTag").textContent = (data?.label || "FULL").toUpperCase();
-    setScale(data?.score ?? 0.5);
-    $("resultText").textContent = "✅ Payment verified. Full report unlocked.";
-
-    $("marketComp").textContent = data?.full_report?.market_comparison || "—";
-    $("marginEst").textContent  = data?.full_report?.estimated_margin || "—";
-    $("rangeOut").textContent   = data?.full_report?.price_range || "—";
-    $("tipsOut").textContent    = data?.full_report?.tips || "—";
-    $("dataNote").textContent   = data?.full_report?.data_note || "";
-  }
-
-  $("previewBtn").onclick = async () => {
-    $("previewBtn").disabled = true;
-    setStatus("Checking fairness…");
-    $("result").style.display = "none";
-    try{
-      const payload = await buildPayload();
-      const data = await postJSON("/api/analyze", { ...payload, mode:"preview" });
-      setStatus("");
-      showPreview(data);
-    } catch(e){
-      setStatus("Error: " + (e?.message || "unknown"));
-    } finally {
-      $("previewBtn").disabled = false;
-    }
+  $("previewBtn").onclick=async()=>{
+    setStatus("Checking price fairness…");
+    try{ showPreview(await post("/api/analyze",{...(await payload()),mode:"preview"})); setStatus(""); }
+    catch(e){ setStatus("Error"); }
   };
+  $("payOnceBtn").onclick=()=>post("/api/create-checkout-session",{kind:"once"}).then(d=>location=d.url);
+  $("subscribeBtn").onclick=()=>post("/api/create-checkout-session",{kind:"sub"}).then(d=>location=d.url);
 
-  async function startCheckout(kind){
-    setStatus("Opening secure checkout…");
-    try{
-      const data = await postJSON("/api/create-checkout-session", { kind });
-      if (data?.url) window.location.href = data.url;
-      else setStatus("Checkout error (no URL).");
-    } catch(e){
-      setStatus("Checkout error: " + (e?.message || "unknown"));
-    }
-  }
-  $("payOnceBtn").onclick = () => startCheckout("once");
-  $("subscribeBtn").onclick = () => startCheckout("sub");
-
-  // Auto-unlock after Stripe redirect
-  (async () => {
-    const sessionId = getSessionIdFromUrl();
-    if (!sessionId) return;
-
-    setStatus("Payment detected. Verifying…");
-    try{
-      const payload = await buildPayload();
-      const data = await postJSON("/api/analyze", { ...payload, mode:"full", session_id: sessionId });
-      setStatus("");
-      showFull(data);
-    } catch(e){
-      setStatus("Unlock error: " + (e?.message || "unknown"));
-    }
+  (async()=>{
+    const sid=getSessionId(); if(!sid) return;
+    setStatus("Verifying payment…");
+    try{ showFull(await post("/api/analyze",{...(await payload()),mode:"full",session_id:sid})); setStatus(""); }
+    catch(e){ setStatus("Unlock error"); }
   })();
 </script>
 </body>
