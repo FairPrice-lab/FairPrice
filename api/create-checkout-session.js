@@ -5,7 +5,7 @@ module.exports = async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "POST only" });
 
   try {
-    const { kind } = req.body || {}; // "once" or "sub"
+    const { kind } = req.body || {}; // "once" | "sub"
     const isSub = kind === "sub";
 
     const priceId = isSub ? process.env.STRIPE_PRICE_SUB : process.env.STRIPE_PRICE_ONCE;
