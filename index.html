@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>FairPrice — Consumer Pricing Guide</title>
+  <title>FairPrice — Quote Check</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="description" content="Upload a quote and instantly see if it’s likely under/fair/over market. Pay to unlock a full local/state/national comparison." />
 
@@ -87,7 +87,7 @@
       color:var(--text);background:rgba(255,255,255,.03);border:1px solid var(--line);
     }
     .fine{
-      margin-top:12px;color:var(--muted);font-size:12px;line-height:1.5;
+      margin-top:12px;color:var(--muted);font-size:11px;line-height:1.5;
     }
   </style>
 </head>
@@ -96,12 +96,12 @@
   <div class="container">
     <div class="top">
       <div class="brand"><div class="logo"></div>FairPrice</div>
-      <div class="pill">Consumer Pricing Guide</div>
+      <div class="pill">Free fairness preview</div>
     </div>
 
     <h1>Check a quote in 30 seconds.</h1>
     <p class="sub">
-      Upload a quote (PDF/image) or paste text. You’ll get a free fairness signal (under / fair / over).
+      Upload a quote (PDF/image) or paste text. Get a free fairness signal (under / fair / over).
       Unlock the full report only if you want the numbers.
     </p>
 
@@ -144,11 +144,11 @@
 
         <div class="row">
           <div>
-            <label>ZIP (improves local baseline)</label>
+            <label>ZIP</label>
             <input id="zip" inputmode="numeric" placeholder="e.g., 92618" />
           </div>
           <div>
-            <label>Total price (recommended)</label>
+            <label>Total price</label>
             <input id="price" inputmode="decimal" placeholder="e.g., 514.19" />
           </div>
         </div>
@@ -207,10 +207,10 @@
           </div>
         </div>
 
+        <!-- Small underwriting disclaimer only -->
         <div class="fine">
-          <b>Disclaimer:</b> FairPrice is informational only and does not provide legal, financial, medical/health,
-          tax, insurance, contracting, or professional advice. Estimates may be incomplete or incorrect and are not guarantees.
-          Always consult qualified professionals and compare multiple bids before acting.
+          Disclaimer: FairPrice provides informational estimates only and is not legal, financial, medical/health, tax, or insurance advice.
+          Results may be inaccurate and are not guarantees. Use at your own risk.
         </div>
       </div>
     </div>
@@ -276,7 +276,7 @@
   function showFull(data){
     $("result").style.display = "block";
     $("fullExtras").style.display = "block";
-    $("resultTitle").textContent = "Full FairPrice report";
+    $("resultTitle").textContent = "Full report";
     $("resultTag").textContent = (data?.label || "FULL").toUpperCase();
     setScale(data?.score ?? 0.5);
     $("resultText").textContent = "✅ Payment verified. Full report unlocked.";
