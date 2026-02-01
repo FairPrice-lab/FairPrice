@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <title>FairPrice — Check if your quote is fair</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="description" content="Upload a quote and instantly check price fairness. Get a free under/fair/over signal, then unlock full market comparisons if needed." />
+  <meta name="description" content="Upload a quote and instantly check if it’s likely under/fair/over. Unlock the full report if you want the numbers." />
 
   <style>
     :root{
@@ -99,8 +99,8 @@
 
     <h1>Check if your quote is fair.</h1>
     <p class="sub">
-      Upload a quote or paste the details. Get a free price-fairness signal.
-      Unlock deeper market comparisons only if you want them.
+      Upload a quote or paste the details. Get a free fairness signal (under / fair / over).
+      Unlock the full report only if you want the numbers.
     </p>
 
     <div class="card">
@@ -182,7 +182,7 @@
         </div>
 
         <div class="fine">
-          Disclaimer: Informational estimates only. Not legal, financial, medical, or professional advice.
+          Disclaimer: Informational estimates only. Not legal, financial, medical/health, tax, or insurance advice.
           No guarantees. Use at your own risk.
         </div>
       </div>
@@ -197,13 +197,18 @@
 
   async function toBase64(file){
     return new Promise((res, rej)=>{
-      const r=new FileReader(); r.onload=()=>res(r.result.split(",")[1]); r.onerror=rej; r.readAsDataURL(file);
+      const r=new FileReader();
+      r.onload=()=>res(r.result.split(",")[1]);
+      r.onerror=rej;
+      r.readAsDataURL(file);
     });
   }
+
   const getSessionId = ()=> new URLSearchParams(location.search).get("session_id");
 
   async function payload(){
     const f=$("file").files[0];
+    if (f && f.size > 6 * 1024 * 1024) throw new Error("File too large. Please upload ~5MB or less.");
     return {
       category:$("category").value,
       zip:$("zip").value.trim(),
@@ -214,44 +219,82 @@
       fileBase64:f?await toBase64(f):null
     };
   }
+
   async function post(url, body){
-    const r=await fetch(url,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
+    const r=await fetch(url,{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify(body)
+    });
     if(!r.ok) throw new Error(await r.text());
     return r.json();
   }
+
   function showPreview(d){
     $("result").style.display="block";
     $("fullExtras").style.display="none";
     $("resultTag").textContent=(d.label||"").toUpperCase();
-    setScale(d.score||.5);
-    $("resultText").textContent=d.message||"";
+    setScale(d.score ?? 0.5);
+    $("resultText").textContent=d.message || "";
   }
+
   function showFull(d){
     $("result").style.display="block";
     $("fullExtras").style.display="block";
     $("resultTag").textContent=(d.label||"").toUpperCase();
-    setScale(d.score||.5);
-    $("resultText").textContent="Full report unlocked.";
-    $("marketComp").textContent=d.full_report.market_comparison;
-    $("marginEst").textContent=d.full_report.estimated_margin;
-    $("rangeOut").textContent=d.full_report.price_range;
-    $("tipsOut").textContent=d.full_report.tips;
-    $("dataNote").textContent=d.full_report.data_note;
+    setScale(d.score ?? 0.5);
+    $("resultText").textContent="✅ Full report unlocked.";
+    $("marketComp").textContent=d.full_report?.market_comparison || "—";
+    $("marginEst").textContent=d.full_report?.estimated_margin || "—";
+    $("rangeOut").textContent=d.full_report?.price_range || "—";
+    $("tipsOut").textContent=d.full_report?.tips || "—";
+    $("dataNote").textContent=d.full_report?.data_note || "";
   }
 
   $("previewBtn").onclick=async()=>{
     setStatus("Checking price fairness…");
-    try{ showPreview(await post("/api/analyze",{...(await payload()),mode:"preview"})); setStatus(""); }
-    catch(e){ setStatus("Error"); }
+    $("result").style.display="none";
+    try{
+      const d = await post("/api/analyze",{...(await payload()), mode:"preview"});
+      showPreview(d);
+      setStatus("");
+    } catch(e){
+      setStatus("Error: " + (e?.message || "unknown"));
+    }
   };
-  $("payOnceBtn").onclick=()=>post("/api/create-checkout-session",{kind:"once"}).then(d=>location=d.url);
-  $("subscribeBtn").onclick=()=>post("/api/create-checkout-session",{kind:"sub"}).then(d=>location=d.url);
+
+  $("payOnceBtn").onclick=async()=>{
+    setStatus("Opening checkout…");
+    try{
+      const d = await post("/api/create-checkout-session",{kind:"once"});
+      location = d.url;
+    } catch(e){
+      setStatus("Checkout error: " + (e?.message || "unknown"));
+    }
+  };
+
+  $("subscribeBtn").onclick=async()=>{
+    setStatus("Opening checkout…");
+    try{
+      const d = await post("/api/create-checkout-session",{kind:"sub"});
+      location = d.url;
+    } catch(e){
+      setStatus("Checkout error: " + (e?.message || "unknown"));
+    }
+  };
 
   (async()=>{
-    const sid=getSessionId(); if(!sid) return;
+    const sid=getSessionId();
+    if(!sid) return;
+
     setStatus("Verifying payment…");
-    try{ showFull(await post("/api/analyze",{...(await payload()),mode:"full",session_id:sid})); setStatus(""); }
-    catch(e){ setStatus("Unlock error"); }
+    try{
+      const d = await post("/api/analyze",{...(await payload()), mode:"full", session_id:sid});
+      showFull(d);
+      setStatus("");
+    } catch(e){
+      setStatus("Unlock error: " + (e?.message || "unknown"));
+    }
   })();
 </script>
 </body>
